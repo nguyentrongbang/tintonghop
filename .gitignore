@@ -1,0 +1,6 @@
+wp-config.php
+wp-content/uploads
+debug.log
+node_modules
+config.js
+.idea
