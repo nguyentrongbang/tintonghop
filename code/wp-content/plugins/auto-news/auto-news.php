@@ -202,7 +202,7 @@ if (!class_exists('AutoNews')) :
                 case 'config_id' :
                     echo get_field('config_id', $post_id, true);
                     break;
-                    
+
                 case 'post_id' :
                     echo get_field('post_id', $post_id, true);
                     break;
@@ -345,7 +345,7 @@ if (!class_exists('AutoNews')) :
                     $content_node = $doc->find($content_xpath);
 
                     if ($content_node) {
-                        $content = $content_node->text();
+                        $content = $content_node->html();
                     }
 
                     if (!empty($title)) {
@@ -360,7 +360,15 @@ if (!class_exists('AutoNews')) :
                         );
 
                         if ($post_id) {
-                            update_post_meta($post->ID, "post_id", $post_id);   
+                            update_post_meta($post->ID, "post_id", $post_id);
+                            $replace_result = $this->replace_image_in_content($content, $link, $post_id);
+                            if ($replace_result["change"]) {
+                                wp_update_post([
+                                    "ID" => $post_id,
+                                    "post_content" => $replace_result["content"]
+                                ]);
+                                set_post_thumbnail($post_id, $replace_result["thumbnail_id"]);
+                            }
                         }
                     }
 
@@ -390,16 +398,79 @@ if (!class_exists('AutoNews')) :
             ]);
         }
 
-        function get_auto_news_links_api(WP_REST_Request $request)
+        public function get_auto_news_links_api(WP_REST_Request $request)
         {
             $this->get_auto_news_links();
             wp_send_json(["success" => true]);
         }
 
-        function get_auto_news_posts_api(WP_REST_Request $request)
+        public function get_auto_news_posts_api(WP_REST_Request $request)
         {
             $this->get_auto_news_posts();
             wp_send_json(["success" => true]);
+        }
+
+        public function download_img($img, $post_id)
+        {
+            $new_att_id = media_sideload_image($img, $post_id, "", 'id');
+
+            if (!is_wp_error($new_att_id)) {
+                return $new_att_id;
+            }
+
+            return null;
+        }
+
+        public function replace_image_in_content($content, $link, $post_id)
+        {
+            $doc = new Document();
+            $doc->html($content);
+            $nodes = $doc->find("img");
+            $checked = [];
+            $change = false;
+            $thumbnail_id = "";
+            $home_url = get_home_url();
+
+            if ($nodes) {
+                foreach ($nodes as $node) {
+                    $img = $node->attr("src");
+
+                    if (in_array($img, $checked)) {
+                        break;
+                    }
+
+                    $checked[] = $img;
+                    $raw_img = $img;
+
+                    if (strpos($img, "http") === false) {
+                        $tmp = parse_url($link);
+                        $img = $tmp["scheme"] . "://" . $tmp["host"] . $img;
+                    } else {
+                        $tmp = parse_url($img);
+                        $tmp2 = parse_url($home_url);
+                        if ($tmp["host"] == $tmp2["host"]) {
+                            break;
+                        }
+                    }
+
+                    $new_att_id = $this->download_img($img, $post_id);
+
+                    if ($new_att_id) {
+                        $new_img = wp_get_attachment_url($new_att_id);
+                        $content = str_replace($raw_img, $new_img, $content);
+                        $change = true;
+                        if (empty($thumbnail_id)) {
+                            $thumbnail_id = $new_att_id;
+                        }
+                    }
+                }
+            }
+
+            return [
+                "change" => $change,
+                "thumbnail_id" => $thumbnail_id,
+                "content" => $content
+            ];
         }
     }
 endif;

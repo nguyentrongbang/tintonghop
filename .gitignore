@@ -1,5 +1,5 @@
 wp-config.php
-wp-content/uploads
+code/wp-content/uploads
 debug.log
 node_modules
 config.js
