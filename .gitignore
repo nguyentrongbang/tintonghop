@@ -1,6 +1,6 @@
 wp-config.php
-code/wp-content/uploads
 debug.log
 node_modules
 config.js
 .idea
+/code/wp-content/uploads/
