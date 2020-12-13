@@ -12,7 +12,7 @@ Author:      Nguyễn Trọng Bằng
 
 if (!defined('ABSPATH')) exit;
 
-require_once(ABSPATH . "vendor/autoload.php");
+require_once(plugin_dir_path(__FILE__) . "vendor/autoload.php");
 require_once(ABSPATH . "wp-includes/pluggable.php");
 require_once(ABSPATH . 'wp-admin/includes/media.php');
 require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -25,30 +25,10 @@ if (!class_exists('AutoNews')) :
     class AutoNews
     {
         var $version = '1.0';
-        var $messages = [];
-        var $cookies = [];
 
         function __construct()
         {
 
-        }
-
-        function parseCookie($cookie)
-        {
-            $tmp = explode(";", $cookie);
-            if (count($tmp)) {
-                foreach ($tmp as $item) {
-                    $tmp2 = explode("=", $item);
-                    if (count($tmp2)) {
-                        $this->cookies[$tmp2[0]] = $tmp2[1];
-                    }
-                }
-            }
-        }
-
-        function addMessages($messages)
-        {
-            $this->messages[] = $messages;
         }
 
         public function initialize()
