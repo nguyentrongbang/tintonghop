@@ -56,6 +56,9 @@ if (!class_exists('AutoNews')) :
                     'callback' => array($this, 'get_auto_news_posts_api')
                 ));
             });
+
+            add_action('get_auto_news_links', array($this, 'get_auto_news_links'));
+            add_action('get_auto_news_posts', array($this, 'get_auto_news_posts'));
         }
 
         function define($name, $value = true)
