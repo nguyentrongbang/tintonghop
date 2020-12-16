@@ -4,3 +4,5 @@ node_modules
 config.js
 .idea
 /code/wp-content/uploads/
+docker-compose.yml
+nginx/site.conf
