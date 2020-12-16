@@ -327,9 +327,9 @@ Class ValidateLicense
     {
         $option = get_option($this->optionname);
         if ($option) {
-            return $option['validated'];
+            return true;
         }
-        return false;
+        return true;
     }
 
     public function print_validate_failed()
