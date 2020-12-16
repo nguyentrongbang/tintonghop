@@ -173,7 +173,7 @@ if ( ! function_exists( 'vc_post_param' ) ) {
 			check_ajax_referer();
 		}
 
-		return isset( $_POST[ $param ] ) ? $_POST[ $param ] : $default;
+		return isset( $_POST[ $param ] ) ? wp_unslash( $_POST[ $param ] ) : $default;
 	}
 }
 if ( ! function_exists( 'vc_get_param' ) ) {
@@ -195,7 +195,7 @@ if ( ! function_exists( 'vc_get_param' ) ) {
 		}
 
 		// @codingStandardsIgnoreLine
-		return isset( $_GET[ $param ] ) ? $_GET[ $param ] : $default;
+		return isset( $_GET[ $param ] ) ? wp_unslash( $_GET[ $param ] ) : $default;
 	}
 }
 if ( ! function_exists( 'vc_request_param' ) ) {
@@ -217,7 +217,7 @@ if ( ! function_exists( 'vc_request_param' ) ) {
 		}
 
 		// @codingStandardsIgnoreLine
-		return isset( $_REQUEST[ $param ] ) ? $_REQUEST[ $param ] : $default;
+		return isset( $_REQUEST[ $param ] ) ? wp_unslash( $_REQUEST[ $param ] ) : $default;
 	}
 }
 if ( ! function_exists( 'vc_is_frontend_editor' ) ) {
@@ -492,29 +492,8 @@ function vc_user_roles_get_all() {
  *
  * @return string
  */
-function vc_generate_nonce( $data, $from_esi = false ) {
-	if ( ! $from_esi && ! vc_is_frontend_editor() ) {
-		if ( method_exists( 'LiteSpeed_Cache_API', 'esi_enabled' ) && LiteSpeed_Cache_API::esi_enabled() ) {
-			if ( method_exists( 'LiteSpeed_Cache_API', 'v' ) && LiteSpeed_Cache_API::v( '1.3' ) ) {
-				$params = array( 'data' => $data );
-
-				return LiteSpeed_Cache_API::esi_url( 'js_composer', 'WPBakery Page Builder', $params, 'default', true );// The last parameter is to remove ESI comment wrapper
-			}
-		}
-	}
-
+function vc_generate_nonce( $data ) {
 	return wp_create_nonce( is_array( $data ) ? ( 'vc-nonce-' . implode( '|', $data ) ) : ( 'vc-nonce-' . $data ) );
-}
-
-/**
- * @param $params
- *
- * @return string
- */
-function vc_hook_esi( $params ) {
-	$data = $params['data'];
-	echo vc_generate_nonce( $data, true );
-	exit;
 }
 
 /**

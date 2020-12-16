@@ -17,9 +17,42 @@ if ( vc_user_access()->part( 'presets' )->can()->get() ) {
 $custom_tag = 'script'; // TODO: Use HTML Shadow dom or ajax response for templates
 ?>
 <<?php echo esc_attr( $custom_tag ); ?>>
-	var vc_user_mapper = <?php echo wp_json_encode( WPBMap::getUserShortCodes() ); ?>,
-		vc_mapper = <?php echo wp_json_encode( WPBMap::getShortCodes() ); ?>,
-		vc_vendor_settings_presets = <?php echo wp_json_encode( $vc_vendor_settings_presets ); ?>,
+	
+	<!-- Tambahan JNews -->
+	<?php
+        echo "var user_shortcode = [];\n";
+
+        foreach(WPBMap::getUserShortCodes() as $key => $value)
+        {
+            echo "\tuser_shortcode.push(" . json_encode(array($key => $value)) . ");\n";
+        }
+
+        echo "\t\nvar shortcode_mapper = [];\n";
+
+        foreach(WPBMap::getShortCodes() as $key => $value)
+        {
+            echo "\tshortcode_mapper.push(" . json_encode(array($key => $value)) . ");\n";
+        }
+    ?>
+
+    var vc_user_mapper = {};
+    for(var i = 0; i < user_shortcode.length; i++)
+    {
+        for(var key in user_shortcode[i]) {
+            vc_user_mapper[key] = user_shortcode[i][key];
+        }
+    }
+
+    var vc_mapper = {};
+    for(var i = 0; i < shortcode_mapper.length; i++)
+    {
+        for(var key in user_shortcode[i]) {
+            vc_mapper[key] = shortcode_mapper[i][key];
+        }
+    }
+    <!-- End Tambahan JNews -->
+
+	var vc_vendor_settings_presets = <?php echo wp_json_encode( $vc_vendor_settings_presets ); ?>,
 		vc_roles = [],
 		vc_frontend_enabled = <?php echo vc_enabled_frontend() ? 'true' : 'false'; ?>,
 		vc_all_presets = <?php echo wp_json_encode( $vc_all_presets ); ?>,

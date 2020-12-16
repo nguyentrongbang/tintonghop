@@ -154,6 +154,9 @@ class Vc_Edit_Form_Fields {
 	 */
 	protected function renderGroupedFields( $groups, $groups_content ) {
 		$output = '';
+		/*** Tambahan JNews **/
+		$groups = apply_filters('jnews_rendered_element_group', $groups);
+        /*** End JNews **/
 		if ( count( $groups ) > 1 || ( count( $groups ) >= 1 && empty( $groups_content['_general'] ) ) ) {
 			$output .= '<div class="vc_panel-tabs" id="vc_edit-form-tabs">';
 			$output .= '<ul class="vc_general vc_ui-tabs-line" data-vc-ui-element="panel-tabs-controls">';
@@ -243,8 +246,9 @@ class Vc_Edit_Form_Fields {
 		$output .= $this->enqueueScripts();
 
 		// @codingStandardsIgnoreLine
-		echo $output;
-		do_action( 'vc_edit_form_fields_after_render' );
+		$output = apply_filters( 'vc_edit_form_fields_after_render', $output );
+
+		return $output;
 	}
 
 	/**

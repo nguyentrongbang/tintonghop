@@ -33,7 +33,21 @@ class VcShortcodeAutoloader {
 			return;
 		}
 
-		$this->loadConfig();
+		$config = array(
+			'classmap_file' => vc_path_dir( 'APP_ROOT', 'vc_classmap.json.php' ),
+			'shortcodes_dir' => vc_path_dir( 'SHORTCODES_DIR' ),
+			'root_dir' => vc_path_dir( 'APP_ROOT' ),
+		);
+
+		if ( is_file( $config['classmap_file'] ) ) {
+			$config['classmap'] = require $config['classmap_file'];
+			self::$cached = true;
+		} else {
+			$config['classmap'] = self::generateClassMap( $config['shortcodes_dir'] );
+			self::$cached = false;
+		}
+
+		self::$config = $config;
 	}
 
 	/**
@@ -44,11 +58,6 @@ class VcShortcodeAutoloader {
 	 * @return string[] Included (if any) files
 	 */
 	public static function includeClass( $class ) {
-		// call the constructor (php 7.4 compat)
-		self::getInstance();
-		if ( ! is_array( self::$config ) ) {
-			self::loadConfig();
-		}
 		$class = strtolower( $class );
 		$files = array();
 
@@ -265,23 +274,5 @@ class VcShortcodeAutoloader {
 
 		// @codingStandardsIgnoreLine
 		return (bool) file_put_contents( $target, $code );
-	}
-
-	protected static function loadConfig() {
-		$config = array(
-			'classmap_file' => vc_path_dir( 'APP_ROOT', 'vc_classmap.json.php' ),
-			'shortcodes_dir' => vc_path_dir( 'SHORTCODES_DIR' ),
-			'root_dir' => vc_path_dir( 'APP_ROOT' ),
-		);
-
-		if ( is_file( $config['classmap_file'] ) ) {
-			$config['classmap'] = require $config['classmap_file'];
-			self::$cached = true;
-		} else {
-			$config['classmap'] = self::generateClassMap( $config['shortcodes_dir'] );
-			self::$cached = false;
-		}
-
-		self::$config = $config;
 	}
 }

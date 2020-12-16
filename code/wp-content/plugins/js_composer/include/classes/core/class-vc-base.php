@@ -82,6 +82,10 @@ class Vc_Base {
 			$this,
 			'addMetaData',
 		) );
+		add_action( 'wp_enqueue_scripts', array(
+			$this,
+			'addIEMinimalSupport',
+		) );
 		if ( is_admin() ) {
 			$this->initAdmin();
 		} else {
@@ -120,10 +124,10 @@ class Vc_Base {
 			'WPBMap',
 			'addAllMappedShortcodes',
 		) );
-		add_action( 'wp_head', array(
+		add_action( 'wp_enqueue_scripts', array(
 			$this,
 			'addFrontCss',
-		), 1000 );
+		) );
 		add_action( 'wp_head', array(
 			$this,
 			'addNoScript',
@@ -271,30 +275,22 @@ class Vc_Base {
 	 * Function creates meta data for post with the key '_wpb_shortcodes_custom_css'
 	 * and value as css string, which will be added to the footer of the page.
 	 *
-	 * @param $id
+	 * @param $post_id
 	 * @throws \Exception
 	 * @since  4.2
 	 * @access public
 	 */
-	public function buildShortcodesCustomCss( $id ) {
-		if ( 'dopreview' === vc_post_param( 'wp-preview' ) && wp_revisions_enabled( get_post( $id ) ) ) {
-			$latest_revision = wp_get_post_revisions( $id );
-			if ( ! empty( $latest_revision ) ) {
-				$array_values = array_values( $latest_revision );
-				$id = $array_values[0]->ID;
-			}
-		}
-
-		$post = get_post( $id );
+	public function buildShortcodesCustomCss( $post_id ) {
+		$post = get_post( $post_id );
 		/**
 		 * vc_filter: vc_base_build_shortcodes_custom_css
 		 * @since 4.4
 		 */
-		$css = apply_filters( 'vc_base_build_shortcodes_custom_css', $this->parseShortcodesCustomCss( $post->post_content ), $id );
+		$css = apply_filters( 'vc_base_build_shortcodes_custom_css', $this->parseShortcodesCustomCss( $post->post_content ), $post_id );
 		if ( empty( $css ) ) {
-			delete_metadata( 'post', $id, '_wpb_shortcodes_custom_css' );
+			delete_metadata( 'post', $post_id, '_wpb_shortcodes_custom_css' );
 		} else {
-			update_metadata( 'post', $id, '_wpb_shortcodes_custom_css', $css );
+			update_metadata( 'post', $post_id, '_wpb_shortcodes_custom_css', $css );
 		}
 	}
 
@@ -358,7 +354,7 @@ class Vc_Base {
 		}
 
 		if ( $id ) {
-			if ( 'true' === vc_get_param( 'preview' ) && wp_revisions_enabled( get_post( $id ) ) ) {
+			if ( 'true' === vc_get_param( 'preview' ) ) {
 				$latest_revision = wp_get_post_revisions( $id );
 				if ( ! empty( $latest_revision ) ) {
 					$array_values = array_values( $latest_revision );
@@ -366,12 +362,9 @@ class Vc_Base {
 				}
 			}
 			$post_custom_css = get_metadata( 'post', $id, '_wpb_post_custom_css', true );
-			$post_custom_css = apply_filters( 'vc_post_custom_css', $post_custom_css, $id );
 			if ( ! empty( $post_custom_css ) ) {
 				$post_custom_css = wp_strip_all_tags( $post_custom_css );
-				echo '<style type="text/css" data-type="vc_custom-css">';
-				echo $post_custom_css;
-				echo '</style>';
+				wp_add_inline_style( 'js_composer_front', $post_custom_css );
 			}
 		}
 	}
@@ -389,12 +382,15 @@ class Vc_Base {
 	 *
 	 */
 	public function addShortcodesCustomCss( $id = null ) {
-		if ( ! $id && is_singular() ) {
+		if ( ! is_singular() ) {
+			return;
+		}
+		if ( ! $id ) {
 			$id = get_the_ID();
 		}
 
 		if ( $id ) {
-			if ( 'true' === vc_get_param( 'preview' ) && wp_revisions_enabled( get_post( $id ) ) ) {
+			if ( 'true' === vc_get_param( 'preview' ) ) {
 				$latest_revision = wp_get_post_revisions( $id );
 				if ( ! empty( $latest_revision ) ) {
 					$array_values = array_values( $latest_revision );
@@ -402,12 +398,9 @@ class Vc_Base {
 				}
 			}
 			$shortcodes_custom_css = get_metadata( 'post', $id, '_wpb_shortcodes_custom_css', true );
-			$shortcodes_custom_css = apply_filters( 'vc_shortcodes_custom_css', $shortcodes_custom_css, $id );
 			if ( ! empty( $shortcodes_custom_css ) ) {
 				$shortcodes_custom_css = wp_strip_all_tags( $shortcodes_custom_css );
-				echo '<style type="text/css" data-type="vc_shortcodes-custom-css">';
-				echo $shortcodes_custom_css;
-				echo '</style>';
+				wp_add_inline_style( 'js_composer_front', $shortcodes_custom_css );
 			}
 		}
 	}
@@ -444,8 +437,7 @@ class Vc_Base {
 		wp_register_style( 'nivo-slider-theme', vc_asset_url( 'lib/bower/nivoslider/themes/default/default.min.css' ), array( 'nivo-slider-css' ), WPB_VC_VERSION );
 		wp_register_style( 'prettyphoto', vc_asset_url( 'lib/prettyphoto/css/prettyPhoto.min.css' ), array(), WPB_VC_VERSION );
 		wp_register_style( 'isotope-css', vc_asset_url( 'css/lib/isotope.min.css' ), array(), WPB_VC_VERSION );
-		wp_register_style( 'vc_font_awesome_5_shims', vc_asset_url( 'lib/bower/font-awesome/css/v4-shims.min.css' ), array(), WPB_VC_VERSION );
-		wp_register_style( 'vc_font_awesome_5', vc_asset_url( 'lib/bower/font-awesome/css/all.min.css' ), array( 'vc_font_awesome_5_shims' ), WPB_VC_VERSION );
+		wp_register_style( 'font-awesome', vc_asset_url( 'lib/bower/font-awesome/css/font-awesome.min.css' ), array(), WPB_VC_VERSION );
 		wp_register_style( 'vc_animate-css', vc_asset_url( 'lib/bower/animate-css/animate.min.css' ), array(), WPB_VC_VERSION );
 
 		$front_css_file = vc_asset_url( 'css/js_composer.min.css' );
@@ -464,6 +456,8 @@ class Vc_Base {
 			wp_register_style( 'js_composer_custom_css', $custom_css_url, array(), WPB_VC_VERSION );
 		}
 
+		wp_register_style( 'vc_lte_ie9', vc_asset_url( 'css/vc_lte_ie9.min.css' ), array(), WPB_VC_VERSION, 'screen' );
+
 		add_action( 'wp_enqueue_scripts', array(
 			$this,
 			'enqueueStyle',
@@ -479,11 +473,15 @@ class Vc_Base {
 	 * Enqueue base css class for VC elements and enqueue custom css if exists.
 	 */
 	public function enqueueStyle() {
+		/*** Tambahan JNews **/
 		$post = get_post();
-		if ( $post && strpos( $post->post_content, '[vc_row' ) !== false ) {
+		$force_load_script = apply_filters('jnews_vc_force_load_style', false);
+		if ( ( $post && preg_match( '/vc_row/', $post->post_content ) )
+            || $force_load_script ) {
 			wp_enqueue_style( 'js_composer_front' );
 		}
 		wp_enqueue_style( 'js_composer_custom_css' );
+        /*** End Tambahan JNews **/
 	}
 
 	/**
@@ -596,6 +594,16 @@ class Vc_Base {
 	 */
 	public function addMetaData() {
 		echo '<meta name="generator" content="Powered by WPBakery Page Builder - drag and drop page builder for WordPress."/>' . "\n";
+	}
+
+	/**
+	 * Also add fix for IE8 bootstrap styles from WPExplorer
+	 * @since  4.9
+	 * @access public
+	 */
+	public function addIEMinimalSupport() {
+		wp_enqueue_style( 'vc_lte_ie9' );
+		wp_style_add_data( 'vc_lte_ie9', 'conditional', 'lt IE 9' );
 	}
 
 	/**
@@ -751,7 +759,6 @@ class Vc_Base {
 			'preset_removed' => esc_html__( 'Element successfully removed.', 'js_composer' ),
 			'vc_successfully_updated' => esc_html__( 'Successfully updated!', 'js_composer' ),
 			'gutenbergDoesntWorkProperly' => esc_html__( 'Gutenberg plugin doesn\'t work properly. Please check Gutenberg plugin.', 'js_composer' ),
-			'unfiltered_html_access' => esc_html__( 'Custom HTML is disabled for your user role. Please contact your site Administrator to change your capabilities.', 'js_composer' ),
 		);
 	}
 }

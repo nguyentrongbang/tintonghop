@@ -24,7 +24,6 @@ class Vc_Post_Admin {
 			$this,
 			'saveAjaxFe',
 		) );
-		add_filter( 'content_save_pre', 'wpb_remove_custom_html' );
 	}
 
 	/**
@@ -49,9 +48,7 @@ class Vc_Post_Admin {
 				if ( null !== $post_title ) {
 					$post->post_title = $post_title;
 				}
-				if ( vc_user_access()->part( 'unfiltered_html' )->checkStateAny( true, null )->get() ) {
-					kses_remove_filters();
-				}
+				kses_remove_filters();
 				remove_filter( 'content_save_pre', 'balanceTags', 50 );
 				if ( $post_status && 'publish' === $post_status ) {
 					if ( vc_user_access()->wpAll( array(
@@ -94,6 +91,7 @@ class Vc_Post_Admin {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE || vc_is_inline() ) {
 			return;
 		}
+
 		$this->setPostMeta( $post_id );
 	}
 
@@ -151,41 +149,31 @@ class Vc_Post_Admin {
 	}
 
 	/**
-	 * @param $id
+	 * @param $post_id
 	 * @throws \Exception
 	 */
-	protected function setPostMeta( $id ) {
+	protected function setPostMeta( $post_id ) {
 		if ( ! vc_user_access()->wpAny( array(
 			'edit_post',
-			$id,
+			$post_id,
 		) )->get() ) {
 			return;
 		}
-
-		$this->setJsStatus( $id );
-		if ( 'dopreview' === vc_post_param( 'wp-preview' ) && wp_revisions_enabled( get_post( $id ) ) ) {
-			$latest_revision = wp_get_post_revisions( $id );
-			if ( ! empty( $latest_revision ) ) {
-				$array_values = array_values( $latest_revision );
-				$id = $array_values[0]->ID;
-			}
-		}
-
+		$this->setJsStatus( $post_id );
 		if ( 'dopreview' !== vc_post_param( 'wp-preview' ) ) {
-			$this->setSettings( $id );
+			$this->setSettings( $post_id );
 		}
-
 		/**
 		 * vc_filter: vc_base_save_post_custom_css
 		 * @since 4.4
 		 */
-		$post_custom_css = apply_filters( 'vc_base_save_post_custom_css', vc_post_param( 'vc_post_custom_css' ), $id );
+		$post_custom_css = apply_filters( 'vc_base_save_post_custom_css', vc_post_param( 'vc_post_custom_css' ), $post_id );
 		if ( null !== $post_custom_css && empty( $post_custom_css ) ) {
-			delete_metadata( 'post', $id, '_wpb_post_custom_css' );
+			delete_metadata( 'post', $post_id, '_wpb_post_custom_css' );
 		} elseif ( null !== $post_custom_css ) {
 			$post_custom_css = wp_strip_all_tags( $post_custom_css );
-			update_metadata( 'post', $id, '_wpb_post_custom_css', $post_custom_css );
+			update_metadata( 'post', $post_id, '_wpb_post_custom_css', $post_custom_css );
 		}
-		visual_composer()->buildShortcodesCustomCss( $id );
+		visual_composer()->buildShortcodesCustomCss( $post_id );
 	}
 }

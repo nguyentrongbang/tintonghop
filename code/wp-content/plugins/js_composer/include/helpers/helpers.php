@@ -845,7 +845,7 @@ function vc_parse_multi_attribute( $value, $default = array() ) {
 		foreach ( $params_pairs as $pair ) {
 			$param = preg_split( '/\:/', $pair );
 			if ( ! empty( $param[0] ) && isset( $param[1] ) ) {
-				$result[ $param[0] ] = trim( rawurldecode( $param[1] ) );
+				$result[ $param[0] ] = rawurldecode( $param[1] );
 			}
 		}
 	}
@@ -993,15 +993,9 @@ function vc_include_template( $template, $variables = array(), $once = false ) {
  */
 function vc_get_template( $template, $variables = array(), $once = false ) {
 	ob_start();
-	$output = vc_include_template( $template, $variables, $once );
+	vc_include_template( $template, $variables, $once );
 
-	if ( 1 === $output ) {
-		$output = ob_get_contents();
-	}
-
-	ob_end_clean();
-
-	return $output;
+	return ob_get_clean();
 }
 
 /**
@@ -1061,7 +1055,7 @@ function vc_camel_case( $value ) {
 function vc_icon_element_fonts_enqueue( $font ) {
 	switch ( $font ) {
 		case 'fontawesome':
-			wp_enqueue_style( 'vc_font_awesome_5' );
+			wp_enqueue_style( 'font-awesome' );
 			break;
 		case 'openiconic':
 			wp_enqueue_style( 'vc_openiconic' );
@@ -1190,15 +1184,10 @@ function vc_taxonomies_types( $post_type = null ) {
 	global $vc_taxonomies_types;
 	if ( is_null( $vc_taxonomies_types ) || $post_type ) {
 		$query = array( 'public' => true );
-		$vc_taxonomies_types = get_taxonomies( $query, 'objects' );
-		if ( ! empty( $post_type ) && is_array( $vc_taxonomies_types ) ) {
-			foreach ( $vc_taxonomies_types as $key => $taxonomy ) {
-				$arr = (array) $taxonomy;
-				if ( isset( $arr['object_type'] ) && ! in_array( $post_type, $arr['object_type'] ) ) {
-					unset( $vc_taxonomies_types[ $key ] );
-				}
-			}
+		if ( $post_type ) {
+			$query['object_type'] = array( $post_type );
 		}
+		$vc_taxonomies_types = get_taxonomies( $query, 'objects' );
 	}
 
 	return $vc_taxonomies_types;
@@ -1313,18 +1302,7 @@ function vc_is_responsive_disabled() {
  * @throws \Exception
  */
 function vc_do_shortcode( $atts, $content = null, $tag = null ) {
-	ob_start();
-	echo Vc_Shortcodes_Manager::getInstance()->getElementClass( $tag )->output( $atts, $content );
-	$content = ob_get_clean();
-	// @codingStandardsIgnoreStart
-	global $wp_embed;
-	if ( is_object( $wp_embed ) ) {
-		$content = $wp_embed->run_shortcode( $content );
-		$content = $wp_embed->autoembed( $content );
-		// @codingStandardsIgnoreEnd
-	}
-
-	return $content;
+	return Vc_Shortcodes_Manager::getInstance()->getElementClass( $tag )->output( $atts, $content );
 }
 
 /**
@@ -1407,23 +1385,4 @@ function wpb_widget_title( $params = array( 'title' => '' ) ) {
 	$output = '<h2 class="wpb_heading' . esc_attr( $extraclass ) . '">' . esc_html( $params['title'] ) . '</h2>';
 
 	return apply_filters( 'wpb_widget_title', $output, $params );
-}
-
-/**
- * Used to remove raw_html/raw_js elements from content
- * @param $content
- * @return string|string[]|null
- * @since 6.3.0
- */
-function wpb_remove_custom_html( $content ) {
-	if ( ! vc_user_access()->part( 'unfiltered_html' )->checkStateAny( true, null )->get() ) {
-		$regex = vc_get_shortcode_regex( implode( '|', apply_filters( 'wpb_custom_html_elements', array(
-			'vc_raw_html',
-			'vc_raw_js',
-		) ) ) );
-
-		$content = preg_replace( '/' . $regex . '/', '', $content );
-	}
-
-	return $content;
 }

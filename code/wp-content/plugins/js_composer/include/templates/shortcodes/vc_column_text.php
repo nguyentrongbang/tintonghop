@@ -33,4 +33,4 @@ $output = '
 	</div>
 ';
 
-echo $output;
+return $output;

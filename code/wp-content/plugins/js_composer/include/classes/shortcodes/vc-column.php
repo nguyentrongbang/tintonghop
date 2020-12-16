@@ -148,11 +148,8 @@ class WPBakeryShortCode_VC_Column extends WPBakeryShortCode {
 	 */
 	public function contentAdmin( $atts, $content = null ) {
 		$width = '';
-		$atts = vc_map_get_attributes( $this->getShortcode(), $atts );
 		// @codingStandardsIgnoreLine
-		extract( $atts );
-		$this->atts = $atts;
-
+		extract( vc_map_get_attributes( $this->getShortcode(), $atts ) );
 		$output = '';
 
 		$column_controls = $this->getColumnControls( $this->settings( 'controls' ) );
