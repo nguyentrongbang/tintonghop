@@ -199,6 +199,7 @@ if (!class_exists('AutoNews')) :
             $columns['link_xpath'] = __('Link xpath', 'domain');
             $columns['title_xpath'] = __('Title xpath', 'domain');
             $columns['content_xpath'] = __('Content xpath', 'domain');
+            $columns['category'] = __('Category', 'domain');
 
             return $columns;
         }
@@ -221,6 +222,19 @@ if (!class_exists('AutoNews')) :
 
                 case 'content_xpath' :
                     echo get_field('content_xpath', $post_id, true);
+                    break;
+
+                case 'category' :
+                    $cat_names = [];
+                    $cats = get_field('category', $post_id, true);
+                    if (!empty($cats)) {
+                        foreach ($cats as $cat_id) {
+                            $cat_names[] = get_cat_name($cat_id);
+                        }
+                    }
+                    if (!empty($cat_names)) {
+                        echo implode(", ", $cat_names);
+                    }
                     break;
             }
         }
@@ -301,6 +315,7 @@ if (!class_exists('AutoNews')) :
                     $config_id = get_post_meta($post->ID, "config_id", true);
                     $title_xpath = get_post_meta($config_id, "title_xpath", true);
                     $content_xpath = get_post_meta($config_id, "content_xpath", true);
+                    $category = get_field('category', $config_id, true);
 
                     $html = file_get_contents($link);
 
@@ -332,6 +347,7 @@ if (!class_exists('AutoNews')) :
                         $post_id = $this->insert_post([
                                 "title" => $title,
                                 "content" => $content,
+                                "category" => $category,
                                 "meta_input" => [
                                     "link" => $link,
                                     "parent_id" => $post->ID,
@@ -374,6 +390,7 @@ if (!class_exists('AutoNews')) :
                 "post_status" => "publish",
                 "post_title" => $args["title"],
                 "post_content" => $args["content"],
+                "post_category" => $args['category'],
                 "meta_input" => $args["meta_input"]
             ]);
         }
