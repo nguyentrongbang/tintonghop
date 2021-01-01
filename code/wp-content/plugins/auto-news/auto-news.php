@@ -445,6 +445,9 @@ if (!class_exists('AutoNews')) :
                     if (strpos($img, "http") === false) {
                         $tmp = parse_url($link);
                         $img = $tmp["scheme"] . "://" . $tmp["host"] . $img;
+                    } else if (substr($img,0,2) == '//') {
+                        $tmp = parse_url($link);
+                        $img = $tmp["scheme"] . $img;
                     } else {
                         $tmp = parse_url($img);
                         $tmp2 = parse_url($home_url);
