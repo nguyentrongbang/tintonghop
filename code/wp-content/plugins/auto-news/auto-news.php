@@ -346,6 +346,8 @@ if (!class_exists('AutoNews')) :
                         $content = $content_node->html();
                     }
 
+                    $content = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $content);
+
                     if (!empty($title)) {
                         $post_id = $this->insert_post([
                                 "title" => $title,
