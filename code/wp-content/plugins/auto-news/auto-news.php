@@ -209,6 +209,7 @@ if (!class_exists('AutoNews')) :
             $columns['link_xpath'] = __('Link xpath', 'domain');
             $columns['title_xpath'] = __('Title xpath', 'domain');
             $columns['content_xpath'] = __('Content xpath', 'domain');
+            $columns['remove_xpaths'] = __('Remove xpath', 'domain');
             $columns['image_attr'] = __('Image attr', 'domain');
             $columns['category'] = __('Category', 'domain');
 
@@ -233,6 +234,10 @@ if (!class_exists('AutoNews')) :
 
                 case 'content_xpath' :
                     echo get_field('content_xpath', $post_id, true);
+                    break;
+
+                case 'remove_xpaths' :
+                    echo get_field('remove_xpaths', $post_id, true);
                     break;
 
                 case 'image_attr' :
@@ -330,6 +335,7 @@ if (!class_exists('AutoNews')) :
                     $config_id = get_post_meta($post->ID, "config_id", true);
                     $title_xpath = get_post_meta($config_id, "title_xpath", true);
                     $content_xpath = get_post_meta($config_id, "content_xpath", true);
+                    $remove_xpaths = get_post_meta($config_id, "remove_xpaths", true);
                     $image_attr = get_post_meta($config_id, "image_attr", true);
                     $category = get_field('category', $config_id, true);
 
@@ -348,6 +354,18 @@ if (!class_exists('AutoNews')) :
 
                     if ($title_node) {
                         $title = $title_node->text();
+                    }
+
+                    /**
+                     * Remove
+                     */
+                    if ($remove_xpaths) {
+                        $remove_xpaths = explode("\n", $remove_xpaths);
+                        if (count($remove_xpaths)) {
+                            foreach ($remove_xpaths as $remove_xpath) {
+                                $doc->find($remove_xpath)->remove();
+                            }
+                        }
                     }
 
                     /**
@@ -445,18 +463,22 @@ if (!class_exists('AutoNews')) :
         public function test() {
             $content = '<div class="abc">
 <h1>title</h1>
-<img class="lazyload" src="https://phunutoday.vn/v1.9.100/templates/themes/images/blank.png" data-src="https://media.phunutoday.vn/files/content/2021/01/12/mui12-1618.jpg" alt="mui12" width="800" height="533" />
+<img class="lazyload" style="display:none;visibility:hidden;" src="https://phunutoday.vn/v1.9.100/templates/themes/images/blank.png" data-src="https://media.phunutoday.vn/files/content/2021/01/12/mui12-1618.jpg" alt="mui12" width="800" height="533" />
 <img class="lazyload" src="https://phunutoday.vn/v1.9.100/templates/themes/images/blank.png" data-src="https://media.phunutoday.vn/files/content/2021/01/12/mui12-1619.jpg" alt="mui12" width="800" height="533" />
 <p>Paragraph 1</p>
 </div>';
             $doc = new Document();
             $doc->html($content);
+            $doc->find("img[style='display:none;visibility:hidden;']")->remove();
             $nodes = $doc->find("img");
             foreach ($nodes as $node) {
                 $img = $node->attr("data-src");
                 $node->attr("src", $img);
+                $node->removeAttr("width");
+                $node->removeAttr("height");
+                $node->removeAttr("class");
             }
-
+echo $doc->html();die;
             return $doc->html();
         }
 
@@ -492,6 +514,10 @@ if (!class_exists('AutoNews')) :
                     if ($new_att_id) {
                         $new_img = wp_get_attachment_url($new_att_id);
                         $node->attr('src', $new_img);
+                        $node->removeAttr("width");
+                        $node->removeAttr("height");
+                        $node->removeAttr("class");
+                        $node->removeAttr("data-src");
                         $change = true;
                         if (empty($thumbnail_id)) {
                             $thumbnail_id = $new_att_id;
