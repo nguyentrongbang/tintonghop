@@ -57,6 +57,13 @@ if (!class_exists('AutoNews')) :
                 ));
             });
 
+            add_action('rest_api_init', function () {
+                register_rest_route('auto-news/v1', '/test', array(
+                    'methods' => 'GET',
+                    'callback' => array($this, 'test_api')
+                ));
+            });
+
             add_action('get_auto_news_links', array($this, 'get_auto_news_links'));
             add_action('get_auto_news_posts', array($this, 'get_auto_news_posts'));
         }
@@ -202,6 +209,7 @@ if (!class_exists('AutoNews')) :
             $columns['link_xpath'] = __('Link xpath', 'domain');
             $columns['title_xpath'] = __('Title xpath', 'domain');
             $columns['content_xpath'] = __('Content xpath', 'domain');
+            $columns['image_attr'] = __('Image attr', 'domain');
             $columns['category'] = __('Category', 'domain');
 
             return $columns;
@@ -225,6 +233,10 @@ if (!class_exists('AutoNews')) :
 
                 case 'content_xpath' :
                     echo get_field('content_xpath', $post_id, true);
+                    break;
+
+                case 'image_attr' :
+                    echo get_field('image_attr', $post_id, true);
                     break;
 
                 case 'category' :
@@ -318,6 +330,7 @@ if (!class_exists('AutoNews')) :
                     $config_id = get_post_meta($post->ID, "config_id", true);
                     $title_xpath = get_post_meta($config_id, "title_xpath", true);
                     $content_xpath = get_post_meta($config_id, "content_xpath", true);
+                    $image_attr = get_post_meta($config_id, "image_attr", true);
                     $category = get_field('category', $config_id, true);
 
                     $html = file_get_contents($link);
@@ -362,7 +375,7 @@ if (!class_exists('AutoNews')) :
 
                         if ($post_id) {
                             update_post_meta($post->ID, "post_id", $post_id);
-                            $replace_result = $this->replace_image_in_content($content, $link, $post_id);
+                            $replace_result = $this->replace_image_in_content($content, $link, $post_id, $image_attr);
                             if ($replace_result["change"]) {
                                 wp_update_post([
                                     "ID" => $post_id,
@@ -412,6 +425,12 @@ if (!class_exists('AutoNews')) :
             wp_send_json(["success" => true]);
         }
 
+        public function test_api(WP_REST_Request $request)
+        {
+
+            wp_send_json(["success" => true, "data" => $this->test()]);
+        }
+
         public function download_img($img, $post_id)
         {
             $new_att_id = media_sideload_image($img, $post_id, "", 'id');
@@ -423,26 +442,36 @@ if (!class_exists('AutoNews')) :
             return null;
         }
 
-        public function replace_image_in_content($content, $link, $post_id)
+        public function test() {
+            $content = '<div class="abc">
+<h1>title</h1>
+<img class="lazyload" src="https://phunutoday.vn/v1.9.100/templates/themes/images/blank.png" data-src="https://media.phunutoday.vn/files/content/2021/01/12/mui12-1618.jpg" alt="mui12" width="800" height="533" />
+<img class="lazyload" src="https://phunutoday.vn/v1.9.100/templates/themes/images/blank.png" data-src="https://media.phunutoday.vn/files/content/2021/01/12/mui12-1619.jpg" alt="mui12" width="800" height="533" />
+<p>Paragraph 1</p>
+</div>';
+            $doc = new Document();
+            $doc->html($content);
+            $nodes = $doc->find("img");
+            foreach ($nodes as $node) {
+                $img = $node->attr("data-src");
+                $node->attr("src", $img);
+            }
+
+            return $doc->html();
+        }
+
+        public function replace_image_in_content($content, $link, $post_id, $attr = "src")
         {
             $doc = new Document();
             $doc->html($content);
             $nodes = $doc->find("img");
-            $checked = [];
             $change = false;
             $thumbnail_id = "";
             $home_url = get_home_url();
 
             if ($nodes) {
                 foreach ($nodes as $node) {
-                    $img = $node->attr("src");
-
-                    if (in_array($img, $checked)) {
-                        break;
-                    }
-
-                    $checked[] = $img;
-                    $raw_img = $img;
+                    $img = $node->attr($attr);
 
                     if (strpos($img, "http") === false) {
                         $tmp = parse_url($link);
@@ -462,7 +491,7 @@ if (!class_exists('AutoNews')) :
 
                     if ($new_att_id) {
                         $new_img = wp_get_attachment_url($new_att_id);
-                        $content = str_replace($raw_img, $new_img, $content);
+                        $node->attr('src', $new_img);
                         $change = true;
                         if (empty($thumbnail_id)) {
                             $thumbnail_id = $new_att_id;
@@ -474,7 +503,7 @@ if (!class_exists('AutoNews')) :
             return [
                 "change" => $change,
                 "thumbnail_id" => $thumbnail_id,
-                "content" => $content
+                "content" => $doc->html()
             ];
         }
     }
