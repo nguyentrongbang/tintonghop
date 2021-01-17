@@ -66,6 +66,14 @@ if (!class_exists('AutoNews')) :
 
             add_action('get_auto_news_links', array($this, 'get_auto_news_links'));
             add_action('get_auto_news_posts', array($this, 'get_auto_news_posts'));
+
+            add_filter('intermediate_image_sizes_advanced', array($this, 'remove_image_sizes'), 10, 2);
+            add_filter('big_image_size_threshold', '__return_false');
+        }
+
+        function remove_image_sizes($sizes, $metadata)
+        {
+            return [];
         }
 
         function define($name, $value = true)
@@ -484,6 +492,9 @@ echo $doc->html();die;
 
         public function replace_image_in_content($content, $link, $post_id, $attr = "src")
         {
+            if (empty($attr)) {
+                $attr = "src";
+            }
             $doc = new Document();
             $doc->html($content);
             $nodes = $doc->find("img");
